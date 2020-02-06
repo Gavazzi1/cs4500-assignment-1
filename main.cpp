@@ -115,6 +115,120 @@ void print_console(char* file_path, size_t from, size_t len, size_t print_col_ty
     }
 }
 
+void int_row(SoR* reader) {
+    int base = 0;
+    for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+        for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + atoi(val);
+        }
+    }
+}
+
+void int_col(SoR* reader) {
+    int base = 0;
+    for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+        for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + atoi(val);
+        }
+    }
+}
+
+void float_row(SoR* reader) {
+    float base = 0;
+    for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+        for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + atof(val);
+        }
+    }
+}
+
+void float_col(SoR* reader) {
+    float base = 0;
+    for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+        for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + atof(val);
+        }
+    }
+}
+
+void bool_col(SoR* reader) {
+    bool base = false;
+    for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+        for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+            const char* val = reader->get(i, j).c_str();
+            base = base ^ (strcmp(val, "0") == 0);
+        }
+    }
+}
+
+void bool_row(SoR* reader) {
+    bool base = false;
+    for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+        for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+            const char* val = reader->get(i, j).c_str();
+            base = base ^ (strcmp(val, "0") == 0);
+        }
+    }
+}
+
+void string_col(SoR* reader) {
+    int base = 0;
+    for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+        for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + strlen(val);
+        }
+    }
+}
+
+void string_row(SoR* reader) {
+    int base = 0;
+    for (unsigned int j = 0; j < reader->get_row_size(); ++j) {
+        for (unsigned int i = 0; i < reader->get_column_size(); ++i) {
+            const char* val = reader->get(i, j).c_str();
+            base = base + strlen(val);
+        }
+    }
+}
+
+void benchmark(char* file_path, size_t from, size_t len, char* dType, char* pattern) {
+    if (!is_file_exists(file_path)) {
+        cout << "~ERROR: FILE NOT FOUND~\n";
+        return;
+    }
+
+    size_t file_size = get_file_size(file_path);
+    from = min(from, file_size);
+    len = min(len, file_size);
+
+    SoR* reader = new SoR(file_path, from, len);
+
+    if (strcmp(dType, "int") == 0)
+        if (strcmp(pattern, "byrow") == 0)
+            int_row(reader);
+        else if (strcmp(pattern, "bycol") == 0)
+            int_col(reader);
+    else if (strcmp(dType, "float") == 0)
+        if (strcmp(pattern, "byrow") == 0)
+            float_row(reader);
+        else if (strcmp(pattern, "bycol") == 0)
+            float_col(reader);
+    else if (strcmp(dType, "bool") == 0)
+        if (strcmp(pattern, "byrow") == 0)
+            bool_row(reader);
+        else if (strcmp(pattern, "bycol") == 0)
+            bool_col(reader);
+    else if (strcmp(dType, "string") == 0)
+        if (strcmp(pattern, "byrow") == 0)
+            string_row(reader);
+        else if (strcmp(pattern, "bycol") == 0)
+            string_col(reader);     
+}
+
 int main(int argh, char** argv) {
     char* file_path = nullptr;
     size_t from = 0;
@@ -126,6 +240,10 @@ int main(int argh, char** argv) {
     size_t print_col_index_y = SIZE_MAX;
     size_t is_missing_index_x = SIZE_MAX;
     size_t is_missing_index_y = SIZE_MAX;
+
+    char* dType;
+    char* pattern;
+    bool dobenchmark = false;
     // I want to ignore first argument ("./a.out") as it's the command itself, so I start at 1
     for (int ii = 1; ii < argh; ii++) {
         // The argument right next to a flag is considered its value, so it's skipped with ii++
@@ -157,10 +275,26 @@ int main(int argh, char** argv) {
             is_missing_index_y = get_size_t_from_next_arg(argv[ii + 2]);
             ii += 2;
         }
+        else if (is_valid_flag("-type", dType, argh, argv, ii, 1)) {
+            dType = argv[ii + 1];
+            ii++;
+            dobenchmark = true;
+        } 
+        else if (is_valid_flag("-pattern", pattern, argh, argv, ii, 1)) {
+            pattern = argv[ii + 1];
+            ii++;
+            dobenchmark = true;
+        } 
         else {
             // Currently, we're deciding to ignore everything that isn't one of our argument flags.
         }
     }
+
+    if (dobenchmark) {
+        benchmark(file_path, from, len, dType, pattern);
+        return 0;
+    }
+
     print_console(file_path, from, len, print_col_type_index, print_col_index_x, print_col_index_y, 
                     is_missing_index_x, is_missing_index_y);
 }
